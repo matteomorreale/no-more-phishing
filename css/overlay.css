@@ -1,0 +1,549 @@
+/**
+ * No More Phishing - Overlay Styles
+ * @author Matteo Morreale
+ * @version 1.0.0
+ */
+
+/* =====================================================================
+   CSS Custom Properties
+   ===================================================================== */
+
+:root {
+  --nmp-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Score colors */
+  --nmp-excellent: #16a34a;
+  --nmp-excellent-bg: #f0fdf4;
+  --nmp-excellent-border: #bbf7d0;
+
+  --nmp-good: #2563eb;
+  --nmp-good-bg: #eff6ff;
+  --nmp-good-border: #bfdbfe;
+
+  --nmp-medium: #d97706;
+  --nmp-medium-bg: #fffbeb;
+  --nmp-medium-border: #fde68a;
+
+  --nmp-low: #ea580c;
+  --nmp-low-bg: #fff7ed;
+  --nmp-low-border: #fed7aa;
+
+  --nmp-critical: #dc2626;
+  --nmp-critical-bg: #fef2f2;
+  --nmp-critical-border: #fecaca;
+
+  /* UI */
+  --nmp-radius: 12px;
+  --nmp-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
+  --nmp-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =====================================================================
+   Container Overlay
+   ===================================================================== */
+
+#nmp-overlay {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 8px 16px 0;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--nmp-font);
+  z-index: 9999;
+  position: relative;
+}
+
+/* =====================================================================
+   Card Base
+   ===================================================================== */
+
+.nmp-card {
+  width: 100%;
+  max-width: 600px;
+  border-radius: var(--nmp-radius);
+  box-shadow: var(--nmp-shadow);
+  overflow: hidden;
+  transition: var(--nmp-transition);
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* =====================================================================
+   Loading State
+   ===================================================================== */
+
+.nmp-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+.nmp-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: nmp-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes nmp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.nmp-loading-text {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* =====================================================================
+   Auth State
+   ===================================================================== */
+
+.nmp-auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background: #f9fafb;
+  text-align: center;
+}
+
+.nmp-auth-icon { font-size: 28px; }
+
+.nmp-auth-text {
+  color: #374151;
+  font-size: 13px;
+}
+
+/* =====================================================================
+   Error State
+   ===================================================================== */
+
+.nmp-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.nmp-error-icon { font-size: 16px; }
+
+.nmp-error-text {
+  flex: 1;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+/* =====================================================================
+   Result Card - Header
+   ===================================================================== */
+
+.nmp-result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+/* Score Badge */
+.nmp-score-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-weight: 700;
+  position: relative;
+}
+
+.nmp-score-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.9);
+}
+
+.nmp-score-number {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.nmp-score-max {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+  align-self: flex-end;
+  margin-bottom: 4px;
+}
+
+/* Score colors for badge */
+.nmp-score-badge.nmp-excellent {
+  background: var(--nmp-excellent-bg);
+  color: var(--nmp-excellent);
+  border: 2px solid var(--nmp-excellent-border);
+}
+.nmp-score-badge.nmp-good {
+  background: var(--nmp-good-bg);
+  color: var(--nmp-good);
+  border: 2px solid var(--nmp-good-border);
+}
+.nmp-score-badge.nmp-medium {
+  background: var(--nmp-medium-bg);
+  color: var(--nmp-medium);
+  border: 2px solid var(--nmp-medium-border);
+}
+.nmp-score-badge.nmp-low {
+  background: var(--nmp-low-bg);
+  color: var(--nmp-low);
+  border: 2px solid var(--nmp-low-border);
+}
+.nmp-score-badge.nmp-critical {
+  background: var(--nmp-critical-bg);
+  color: var(--nmp-critical);
+  border: 2px solid var(--nmp-critical-border);
+}
+
+/* Score Info */
+.nmp-score-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nmp-score-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.nmp-sender-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nmp-sender-domain {
+  font-size: 12px;
+  color: #6b7280;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nmp-thread-badge {
+  font-size: 11px;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Toggle Button */
+.nmp-toggle-btn {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: var(--nmp-transition);
+  flex-shrink: 0;
+}
+
+.nmp-toggle-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.nmp-toggle-btn.nmp-rotated svg {
+  transform: rotate(180deg);
+}
+
+/* =====================================================================
+   Score Bar
+   ===================================================================== */
+
+.nmp-score-bar-container {
+  padding: 0 14px 10px;
+}
+
+.nmp-score-bar {
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.nmp-score-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nmp-score-fill.nmp-excellent { background: var(--nmp-excellent); }
+.nmp-score-fill.nmp-good      { background: var(--nmp-good); }
+.nmp-score-fill.nmp-medium    { background: var(--nmp-medium); }
+.nmp-score-fill.nmp-low       { background: var(--nmp-low); }
+.nmp-score-fill.nmp-critical  { background: var(--nmp-critical); }
+
+.nmp-score-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1px;
+}
+
+.nmp-score-ticks span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  transition: var(--nmp-transition);
+}
+
+.nmp-score-ticks span.active {
+  background: #9ca3af;
+}
+
+/* =====================================================================
+   Details Panel
+   ===================================================================== */
+
+.nmp-details {
+  border-top: 1px solid #f3f4f6;
+  padding: 8px 0;
+}
+
+.nmp-section {
+  padding: 8px 14px;
+}
+
+.nmp-section + .nmp-section {
+  border-top: 1px solid #f9fafb;
+}
+
+.nmp-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+/* Auth Grid */
+.nmp-auth-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.nmp-auth-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  min-width: 60px;
+  border: 1px solid;
+}
+
+.nmp-auth-name {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.nmp-auth-status {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.nmp-auth-pass    { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+.nmp-auth-neutral { background: #f9fafb; border-color: #e5e7eb; color: #6b7280; }
+.nmp-auth-softfail { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.nmp-auth-fail    { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.nmp-auth-none    { background: #f9fafb; border-color: #e5e7eb; color: #9ca3af; }
+
+/* Detail Rows */
+.nmp-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.nmp-detail-label {
+  color: #6b7280;
+}
+
+.nmp-detail-value {
+  font-weight: 600;
+  color: #374151;
+}
+
+.nmp-ok      { color: #16a34a !important; }
+.nmp-warning { color: #d97706 !important; }
+.nmp-danger  { color: #dc2626 !important; }
+
+/* Keywords */
+.nmp-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.nmp-keyword {
+  font-size: 11px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+/* Warning Section */
+.nmp-warning-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fffbeb;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.nmp-warning-icon { font-size: 14px; }
+
+/* =====================================================================
+   Footer
+   ===================================================================== */
+
+.nmp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  border-top: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.nmp-brand {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+}
+
+.nmp-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: var(--nmp-transition);
+}
+
+.nmp-close-btn:hover { color: #374151; }
+
+/* =====================================================================
+   Buttons
+   ===================================================================== */
+
+.nmp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--nmp-transition);
+  font-family: var(--nmp-font);
+}
+
+.nmp-btn-primary {
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.nmp-btn-primary:hover { background: #4338ca; }
+
+.nmp-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.nmp-btn-secondary:hover { background: #e5e7eb; }
+
+/* =====================================================================
+   Score-specific card backgrounds
+   ===================================================================== */
+
+.nmp-result.nmp-score-5 { border-color: var(--nmp-excellent-border); }
+.nmp-result.nmp-score-4 { border-color: var(--nmp-good-border); }
+.nmp-result.nmp-score-3 { border-color: var(--nmp-medium-border); }
+.nmp-result.nmp-score-2 { border-color: var(--nmp-low-border); }
+.nmp-result.nmp-score-1 { border-color: var(--nmp-critical-border); }
+
+/* =====================================================================
+   Responsive
+   ===================================================================== */
+
+@media (max-width: 600px) {
+  #nmp-overlay {
+    padding: 6px 8px 0;
+  }
+
+  .nmp-score-badge {
+    width: 46px;
+    height: 46px;
+  }
+
+  .nmp-score-number { font-size: 18px; }
+  .nmp-score-label  { font-size: 13px; }
+}

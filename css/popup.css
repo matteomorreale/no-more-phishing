@@ -1,0 +1,468 @@
+/**
+ * No More Phishing - Popup Styles
+ * @author Matteo Morreale
+ * @version 1.0.0
+ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --nmp-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --nmp-excellent: #16a34a;
+  --nmp-good: #2563eb;
+  --nmp-medium: #d97706;
+  --nmp-low: #ea580c;
+  --nmp-critical: #dc2626;
+  --nmp-radius: 10px;
+  --nmp-transition: all 0.18s ease;
+}
+
+body {
+  font-family: var(--nmp-font);
+  font-size: 13px;
+  background: #ffffff;
+  color: #111827;
+  min-width: 300px;
+  max-width: 340px;
+}
+
+/* =====================================================================
+   Popup Container
+   ===================================================================== */
+
+.nmp-popup {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+/* =====================================================================
+   Header
+   ===================================================================== */
+
+.nmp-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+}
+
+.nmp-popup-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nmp-popup-logo img {
+  border-radius: 6px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.2));
+}
+
+.nmp-popup-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.nmp-popup-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.nmp-popup-version {
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 500;
+}
+
+.nmp-settings-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255,255,255,0.9);
+  transition: var(--nmp-transition);
+}
+
+.nmp-settings-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+/* =====================================================================
+   Body
+   ===================================================================== */
+
+.nmp-popup-body {
+  flex: 1;
+}
+
+.nmp-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.nmp-section:last-child {
+  border-bottom: none;
+}
+
+.nmp-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+
+/* =====================================================================
+   Auth Section
+   ===================================================================== */
+
+.nmp-auth-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.nmp-auth-icon-large {
+  font-size: 36px;
+}
+
+.nmp-auth-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+/* =====================================================================
+   Status Section
+   ===================================================================== */
+
+.nmp-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.nmp-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nmp-status-active {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+  animation: nmp-pulse 2s infinite;
+}
+
+@keyframes nmp-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2); }
+  50%       { box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.1); }
+}
+
+.nmp-status-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.nmp-user-info {
+  padding: 6px 10px;
+  background: #f9fafb;
+  border-radius: 7px;
+  border: 1px solid #e5e7eb;
+}
+
+.nmp-user-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* =====================================================================
+   Score Legend
+   ===================================================================== */
+
+.nmp-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nmp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nmp-legend-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.nmp-legend-badge.nmp-excellent { background: #f0fdf4; color: #16a34a; border: 2px solid #bbf7d0; }
+.nmp-legend-badge.nmp-good      { background: #eff6ff; color: #2563eb; border: 2px solid #bfdbfe; }
+.nmp-legend-badge.nmp-medium    { background: #fffbeb; color: #d97706; border: 2px solid #fde68a; }
+.nmp-legend-badge.nmp-low       { background: #fff7ed; color: #ea580c; border: 2px solid #fed7aa; }
+.nmp-legend-badge.nmp-critical  { background: #fef2f2; color: #dc2626; border: 2px solid #fecaca; }
+
+.nmp-legend-label {
+  font-size: 12px;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* =====================================================================
+   Settings Panel
+   ===================================================================== */
+
+.nmp-settings-panel {
+  position: absolute;
+  inset: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.nmp-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.nmp-back-btn {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: var(--nmp-transition);
+}
+
+.nmp-back-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.nmp-settings-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.nmp-settings-body {
+  flex: 1;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.nmp-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f9fafb;
+}
+
+.nmp-setting-row-vertical {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.nmp-setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.nmp-setting-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.nmp-setting-desc {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Toggle Switch */
+.nmp-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.nmp-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.nmp-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #e5e7eb;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: var(--nmp-transition);
+}
+
+.nmp-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 3px;
+  top: 3px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: var(--nmp-transition);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.nmp-toggle input:checked + .nmp-toggle-slider {
+  background: #4f46e5;
+}
+
+.nmp-toggle input:checked + .nmp-toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* Input */
+.nmp-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 12px;
+  font-family: var(--nmp-font);
+  color: #374151;
+  background: #f9fafb;
+  transition: var(--nmp-transition);
+  outline: none;
+}
+
+.nmp-input:focus {
+  border-color: #6366f1;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.nmp-settings-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+/* =====================================================================
+   Buttons
+   ===================================================================== */
+
+.nmp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: var(--nmp-transition);
+  font-family: var(--nmp-font);
+  text-decoration: none;
+}
+
+.nmp-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.nmp-btn-primary {
+  background: #4f46e5;
+  color: #ffffff;
+}
+.nmp-btn-primary:hover { background: #4338ca; }
+
+.nmp-btn-google {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.nmp-btn-google:hover { background: #f9fafb; }
+
+.nmp-btn-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.nmp-btn-danger:hover { background: #fee2e2; }
+
+/* =====================================================================
+   Footer
+   ===================================================================== */
+
+.nmp-popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-top: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.nmp-footer-text {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+.nmp-footer-link {
+  font-size: 10px;
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nmp-footer-link:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,102 @@
+{
+  "extensionName": {
+    "message": "No More Phishing",
+    "description": "Name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Analyzes Gmail emails to detect phishing attempts. Provides a trust score from 1 to 5 based on SPF, DKIM, DMARC, sender domain, links, and more.",
+    "description": "Description of the extension"
+  },
+  "analyzing": {
+    "message": "Analyzing...",
+    "description": "Loading state text"
+  },
+  "authRequired": {
+    "message": "Sign in with Google to analyze emails",
+    "description": "Authentication required message"
+  },
+  "signIn": {
+    "message": "Sign in with Google",
+    "description": "Sign in button text"
+  },
+  "analysisError": {
+    "message": "Analysis error",
+    "description": "Error state text"
+  },
+  "retry": {
+    "message": "Retry",
+    "description": "Retry button text"
+  },
+  "showDetails": {
+    "message": "Show details",
+    "description": "Toggle details button tooltip"
+  },
+  "emailAuthentication": {
+    "message": "Email Authentication",
+    "description": "Section title for SPF/DKIM/DMARC"
+  },
+  "sender": {
+    "message": "Sender",
+    "description": "Sender section title"
+  },
+  "domain": {
+    "message": "Domain",
+    "description": "Domain label"
+  },
+  "domainMatch": {
+    "message": "Domain match",
+    "description": "Domain match label"
+  },
+  "match": {
+    "message": "Match",
+    "description": "Domain match positive"
+  },
+  "mismatch": {
+    "message": "Mismatch",
+    "description": "Domain match negative"
+  },
+  "reputation": {
+    "message": "Reputation",
+    "description": "Reputation label"
+  },
+  "links": {
+    "message": "Links",
+    "description": "Links section title"
+  },
+  "totalLinks": {
+    "message": "Total links",
+    "description": "Total links label"
+  },
+  "maliciousLinks": {
+    "message": "Malicious links",
+    "description": "Malicious links label"
+  },
+  "urgencyKeywords": {
+    "message": "Suspicious keywords",
+    "description": "Urgency keywords section title"
+  },
+  "hasAttachments": {
+    "message": "Email has attachments — verify carefully",
+    "description": "Attachments warning"
+  },
+  "thread": {
+    "message": "Thread",
+    "description": "Thread badge label"
+  },
+  "unknown": {
+    "message": "Unknown",
+    "description": "Unknown value"
+  },
+  "close": {
+    "message": "Close",
+    "description": "Close button tooltip"
+  },
+  "notificationTitleSuspicious": {
+    "message": "⚠️ Suspicious Email Detected",
+    "description": "Notification title for suspicious emails"
+  },
+  "notificationTitleDangerous": {
+    "message": "🚨 Dangerous Email Detected",
+    "description": "Notification title for dangerous emails"
+  }
+}

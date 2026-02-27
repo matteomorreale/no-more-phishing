@@ -1,0 +1,102 @@
+{
+  "extensionName": {
+    "message": "No More Phishing",
+    "description": "Nome dell'estensione"
+  },
+  "extensionDescription": {
+    "message": "Analizza le email di Gmail per rilevare tentativi di phishing. Fornisce un punteggio di affidabilità da 1 a 5 basato su SPF, DKIM, DMARC, dominio mittente, link e molto altro.",
+    "description": "Descrizione dell'estensione"
+  },
+  "analyzing": {
+    "message": "Analisi in corso...",
+    "description": "Testo dello stato di caricamento"
+  },
+  "authRequired": {
+    "message": "Accedi con Google per analizzare le email",
+    "description": "Messaggio di autenticazione richiesta"
+  },
+  "signIn": {
+    "message": "Accedi con Google",
+    "description": "Testo del pulsante di accesso"
+  },
+  "analysisError": {
+    "message": "Errore durante l'analisi",
+    "description": "Testo dello stato di errore"
+  },
+  "retry": {
+    "message": "Riprova",
+    "description": "Testo del pulsante riprova"
+  },
+  "showDetails": {
+    "message": "Mostra dettagli",
+    "description": "Tooltip del pulsante dettagli"
+  },
+  "emailAuthentication": {
+    "message": "Autenticazione Email",
+    "description": "Titolo sezione SPF/DKIM/DMARC"
+  },
+  "sender": {
+    "message": "Mittente",
+    "description": "Titolo sezione mittente"
+  },
+  "domain": {
+    "message": "Dominio",
+    "description": "Etichetta dominio"
+  },
+  "domainMatch": {
+    "message": "Corrispondenza dominio",
+    "description": "Etichetta corrispondenza dominio"
+  },
+  "match": {
+    "message": "Corrispondente",
+    "description": "Corrispondenza dominio positiva"
+  },
+  "mismatch": {
+    "message": "Non corrispondente",
+    "description": "Corrispondenza dominio negativa"
+  },
+  "reputation": {
+    "message": "Reputazione",
+    "description": "Etichetta reputazione"
+  },
+  "links": {
+    "message": "Link",
+    "description": "Titolo sezione link"
+  },
+  "totalLinks": {
+    "message": "Link totali",
+    "description": "Etichetta link totali"
+  },
+  "maliciousLinks": {
+    "message": "Link malevoli",
+    "description": "Etichetta link malevoli"
+  },
+  "urgencyKeywords": {
+    "message": "Parole chiave sospette",
+    "description": "Titolo sezione parole chiave di urgenza"
+  },
+  "hasAttachments": {
+    "message": "Email con allegati — verificare con attenzione",
+    "description": "Avviso allegati"
+  },
+  "thread": {
+    "message": "Thread",
+    "description": "Etichetta badge thread"
+  },
+  "unknown": {
+    "message": "Sconosciuto",
+    "description": "Valore sconosciuto"
+  },
+  "close": {
+    "message": "Chiudi",
+    "description": "Tooltip pulsante chiudi"
+  },
+  "notificationTitleSuspicious": {
+    "message": "⚠️ Email Sospetta Rilevata",
+    "description": "Titolo notifica per email sospette"
+  },
+  "notificationTitleDangerous": {
+    "message": "🚨 Email Pericolosa Rilevata",
+    "description": "Titolo notifica per email pericolose"
+  }
+}
