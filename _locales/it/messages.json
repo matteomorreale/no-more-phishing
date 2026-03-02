@@ -4,7 +4,7 @@
     "description": "Nome dell'estensione"
   },
   "extensionDescription": {
-    "message": "Analizza le email di Gmail per rilevare tentativi di phishing. Fornisce un punteggio di affidabilità da 1 a 5 basato su SPF, DKIM, DMARC, dominio mittente, link e molto altro.",
+    "message": "Rileva phishing su Gmail. Ottieni un punteggio di affidabilità (1-5) basato su SPF, DKIM, DMARC, dominio, link e altro.",
     "description": "Descrizione dell'estensione"
   },
   "analyzing": {

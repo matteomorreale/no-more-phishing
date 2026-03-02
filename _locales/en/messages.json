@@ -4,7 +4,7 @@
     "description": "Name of the extension"
   },
   "extensionDescription": {
-    "message": "Analyzes Gmail emails to detect phishing attempts. Provides a trust score from 1 to 5 based on SPF, DKIM, DMARC, sender domain, links, and more.",
+    "message": "Detect phishing in Gmail. Get a trust score (1-5) based on SPF, DKIM, DMARC, sender domain, links, and content analysis.",
     "description": "Description of the extension"
   },
   "analyzing": {
