@@ -4,7 +4,7 @@
 
 🌐 **Sito Ufficiale:** [nomorephishing.matteomorreale.it](https://nomorephishing.matteomorreale.it/)
 
-## 🚀 Funzionalità Principali
+## Funzionalità Principali
 
 L'estensione lavora in tempo reale per garantirti la massima sicurezza:
 
@@ -16,7 +16,7 @@ L'estensione lavora in tempo reale per garantirti la massima sicurezza:
 *   **Supporto Thread Gmail**: Analizza correttamente ogni singolo messaggio all'interno delle conversazioni.
 *   **Notifiche Push**: Ti avvisa immediatamente se viene rilevata un'email pericolosa.
 
-## 📊 Come Funziona il Punteggio
+## Come Funziona il Punteggio
 
 Il punteggio viene calcolato combinando oltre 8 parametri di sicurezza:
 
@@ -26,7 +26,7 @@ Il punteggio viene calcolato combinando oltre 8 parametri di sicurezza:
 *   **2 - Sospetto**: Diversi segnali di allarme rilevati.
 *   **1 - Pericoloso**: Quasi certamente un tentativo di phishing.
 
-## 🛠️ Installazione
+## Installazione
 
 ### 1. Scarica l'estensione
 Clona questo repository o scarica il codice sorgente sul tuo computer.
@@ -49,13 +49,13 @@ L'estensione richiede un backend PHP per comunicare con le API di sicurezza (Goo
 2.  L'estensione ti chiederà di autorizzare l'accesso tramite OAuth 2.0 per leggere le intestazioni delle email (necessario per SPF/DKIM).
 3.  Una volta autorizzato, sei protetto!
 
-## 🔒 Privacy e Sicurezza
+## Privacy e Sicurezza
 
 *   **Open Source**: Il codice è trasparente e verificabile da chiunque.
 *   **Dati Locali**: L'analisi avviene principalmente nel browser e tramite il tuo server proxy privato.
 *   **Credenziali**: L'autenticazione avviene tramite OAuth 2.0 ufficiale di Google; le tue password non vengono mai condivise con l'estensione.
 
-## 👨‍💻 Autore
+## Autore
 
 Sviluppato da **Matteo Morreale**.
 
