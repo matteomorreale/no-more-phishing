@@ -1,0 +1,67 @@
+<?php
+/**
+ * No More Phishing - Backend Proxy Configuration Template
+ * @author Matteo Morreale
+ * @version 1.0.0
+ *
+ * ISTRUZIONI:
+ * 1. Copia questo file in config.php
+ * 2. Sostituisci tutti i valori 'YOUR_...' con le tue credenziali reali
+ * 3. NON committare config.php nel repository (è già in .gitignore)
+ */
+
+// =====================================================================
+// API Keys
+// =====================================================================
+
+// Google Safe Browsing API Key
+// Ottieni da: https://console.cloud.google.com -> API e servizi -> Credenziali
+define('GOOGLE_SAFE_BROWSING_API_KEY', 'YOUR_GOOGLE_SAFE_BROWSING_API_KEY');
+
+// VirusTotal API Key (gratuita con limite 4 req/min)
+// Ottieni da: https://www.virustotal.com/gui/my-apikey
+define('VIRUSTOTAL_API_KEY', 'YOUR_VIRUSTOTAL_API_KEY');
+
+// URLScan.io API Key (opzionale, gratuita)
+// Ottieni da: https://urlscan.io/user/profile/
+define('URLSCAN_API_KEY', 'YOUR_URLSCAN_API_KEY');
+
+// =====================================================================
+// ID Estensione Chrome
+// =====================================================================
+
+// Trovalo in chrome://extensions dopo aver caricato l'estensione
+define('ALLOWED_EXTENSION_ID', 'YOUR_CHROME_EXTENSION_ID');
+
+// =====================================================================
+// Rate Limiting
+// =====================================================================
+
+define('RATE_LIMIT_REQUESTS', 100);
+define('RATE_LIMIT_WINDOW', 3600);
+
+// =====================================================================
+// Cache
+// =====================================================================
+
+define('CACHE_ENABLED', true);
+define('CACHE_TTL', 3600);
+define('CACHE_DIR', __DIR__ . '/cache/');
+
+// =====================================================================
+// Logging
+// =====================================================================
+
+define('LOG_ENABLED', true);
+define('LOG_FILE', __DIR__ . '/logs/nmp.log');
+define('LOG_LEVEL', 'WARNING');
+
+// =====================================================================
+// Endpoint API Esterne (non modificare)
+// =====================================================================
+
+define('GOOGLE_SAFE_BROWSING_URL', 'https://safebrowsing.googleapis.com/v4/threatMatches:find');
+define('VIRUSTOTAL_URL_REPORT_URL', 'https://www.virustotal.com/api/v3/urls');
+define('VIRUSTOTAL_DOMAIN_URL', 'https://www.virustotal.com/api/v3/domains/');
+define('URLSCAN_SUBMIT_URL', 'https://urlscan.io/api/v1/scan/');
+define('URLSCAN_RESULT_URL', 'https://urlscan.io/api/v1/result/');

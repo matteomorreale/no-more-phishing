@@ -1,0 +1,30 @@
+# No More Phishing - Backend Security
+# @author Matteo Morreale
+
+# Blocca accesso diretto a file sensibili
+<FilesMatch "^(config|bootstrap)\.php$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Blocca accesso alle directory cache e logs
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(cache|logs)/ - [F,L]
+</IfModule>
+
+# Disabilita directory listing
+Options -Indexes
+
+# Proteggi file .htaccess
+<Files .htaccess>
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Headers di sicurezza
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
