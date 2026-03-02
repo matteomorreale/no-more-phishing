@@ -64,6 +64,8 @@ export class GmailAnalyzer {
     const urgencyKeywords = this._detectUrgencyKeywords(body, headers['subject'] || '');
     const sender = headers['from'] || '';
     const senderDomain = this._extractDomain(sender);
+    const sensitiveData = this._detectSensitiveKeywords(body, headers['subject'] || '');
+    const bodyEmails = this._extractBodyEmails(body);
     
     // Domain Match Logic Migliorata
     let senderDomainMatch = false;
@@ -105,6 +107,8 @@ export class GmailAnalyzer {
       hasAttachments: this._hasAttachments(message.payload),
       isReply: !!(headers['in-reply-to'] || headers['references']),
       rawHeaders: headers,
+      sensitiveData,
+      bodyEmails,
     };
   }
 
@@ -143,16 +147,25 @@ export class GmailAnalyzer {
 
     if (!authResultsHeader) return result;
 
+    // FIX: Se authResultsHeader è un array (più header), prendiamo il primo (più recente)
+    // o li uniamo. Solitamente il primo è quello aggiunto dal server ricevente (Google).
+    let headerValue = '';
+    if (Array.isArray(authResultsHeader)) {
+        headerValue = String(authResultsHeader[0]); 
+    } else {
+        headerValue = String(authResultsHeader);
+    }
+
     // SPF
-    const spfMatch = authResultsHeader.match(/spf=(\w+)/i);
+    const spfMatch = headerValue.match(/spf=(\w+)/i);
     if (spfMatch) result.spf = spfMatch[1].toLowerCase();
 
     // DKIM
-    const dkimMatch = authResultsHeader.match(/dkim=(\w+)/i);
+    const dkimMatch = headerValue.match(/dkim=(\w+)/i);
     if (dkimMatch) result.dkim = dkimMatch[1].toLowerCase();
 
     // DMARC
-    const dmarcMatch = authResultsHeader.match(/dmarc=(\w+)/i);
+    const dmarcMatch = headerValue.match(/dmarc=(\w+)/i);
     if (dmarcMatch) result.dmarc = dmarcMatch[1].toLowerCase();
 
     return result;
@@ -283,20 +296,161 @@ export class GmailAnalyzer {
 
   _detectUrgencyKeywords(body, subject) {
     const text = (body + ' ' + subject).toLowerCase();
+    
+    // Lista estesa di parole chiave in più lingue (IT, EN, ES, FR, DE)
+    // Raggruppate per categoria semantica per facilitare la manutenzione
     const keywords = [
-      // Italiano
-      'urgente', 'immediato', 'scadenza', 'verifica il tuo account',
-      'sospeso', 'bloccato', 'accedi ora', 'clicca qui', 'conferma',
-      'aggiorna i tuoi dati', 'password scaduta', 'attività sospetta',
-      // Inglese
-      'urgent', 'immediate', 'verify your account', 'suspended',
-      'blocked', 'click here', 'confirm now', 'update your information',
-      'password expired', 'suspicious activity', 'act now', 'limited time',
-      'your account has been', 'unusual sign-in', 'security alert',
-      'you have been selected', 'congratulations', 'winner',
+      // 1. URGENZA / SCADENZA / AZIONE IMMEDIATA
+      // IT
+      'urgente', 'immediato', 'scadenza', 'agisci ora', 'ultimo avviso', 'tempo limitato', 'non ignorare',
+      'rispondi subito', 'attenzione richiesta', 'immediata attenzione', 'scade oggi',
+      // EN
+      'urgent', 'immediate', 'deadline', 'act now', 'final notice', 'limited time', 'do not ignore',
+      'respond immediately', 'attention required', 'immediate attention', 'expires today', 'asap',
+      // ES
+      'urgente', 'inmediato', 'plazo', 'actúe ahora', 'aviso final', 'tiempo limitado', 'no ignorar',
+      'responda inmediatamente', 'atención requerida', 'atención inmediata', 'vence hoy',
+      // FR
+      'urgent', 'immédiat', 'date limite', 'agissez maintenant', 'dernier avis', 'temps limité', 'ne pas ignorer',
+      'répondez immédiatement', 'attention requise', 'attention immédiate', 'expire aujourd\'hui',
+      // DE
+      'dringend', 'sofort', 'frist', 'handeln sie jetzt', 'letzte mahnung', 'begrenzte zeit', 'nicht ignorieren',
+      'antworten sie sofort', 'achtung erforderlich', 'sofortige aufmerksamkeit', 'läuft heute ab',
+
+      // 2. ACCOUNT / SICUREZZA / VERIFICA
+      // IT
+      'verifica il tuo account', 'account sospeso', 'account bloccato', 'accesso non autorizzato', 'conferma identità',
+      'aggiorna i tuoi dati', 'password scaduta', 'attività sospetta', 'sicurezza compromessa', 'riattiva account',
+      'il tuo account è stato', 'tentativo di accesso', 'proteggi il tuo account', 'conferma le tue credenziali',
+      // EN
+      'verify your account', 'account suspended', 'account blocked', 'unauthorized access', 'confirm identity',
+      'update your information', 'password expired', 'suspicious activity', 'security compromised', 'reactivate account',
+      'your account has been', 'login attempt', 'protect your account', 'confirm your credentials', 'unusual sign-in',
+      'security alert', 'validate account',
+      // ES
+      'verifique su cuenta', 'cuenta suspendida', 'cuenta bloqueada', 'acceso no autorizado', 'confirmar identidad',
+      'actualice su información', 'contraseña caducada', 'actividad sospechosa', 'seguridad comprometida', 'reactivar cuenta',
+      'su cuenta ha sido', 'intento de inicio de sesión', 'proteja su cuenta', 'confirme sus credenciales',
+      // FR
+      'vérifiez votre compte', 'compte suspendu', 'compte bloqué', 'accès non autorisé', 'confirmer l\'identité',
+      'mettez à jour vos informations', 'mot de passe expiré', 'activité suspecte', 'sécurité compromise', 'réactiver le compte',
+      'votre compte a été', 'tentative de connexion', 'protégez votre compte', 'confirmez vos identifiants',
+      // DE
+      'überprüfen sie ihr konto', 'konto gesperrt', 'konto blockiert', 'unbefugter zugriff', 'identität bestätigen',
+      'aktualisieren sie ihre informationen', 'passwort abgelaufen', 'verdächtige aktivität', 'sicherheit gefährdet', 'konto reaktivieren',
+      'ihr konto wurde', 'anmeldeversuch', 'schützen sie ihr konto', 'bestätigen sie ihre anmeldeinformationen',
+
+      // 3. PAGAMENTI / FINANZA / PREMI
+      // IT
+      'pagamento fallito', 'fattura scaduta', 'rimborso in attesa', 'vincitore', 'congratulazioni', 'hai vinto',
+      'pacco in attesa', 'spedizione bloccata', 'bonifico in arrivo', 'coordinate bancarie', 'carta di credito',
+      // EN
+      'payment failed', 'invoice overdue', 'refund pending', 'winner', 'congratulations', 'you won',
+      'package pending', 'shipment on hold', 'transfer incoming', 'bank details', 'credit card',
+      'lottery', 'prize', 'claim your prize', 'gift card',
+      // ES
+      'pago fallido', 'factura vencida', 'reembolso pendiente', 'ganador', 'felicidades', 'has ganado',
+      'paquete pendiente', 'envío retenido', 'transferencia entrante', 'datos bancarios', 'tarjeta de crédito',
+      // FR
+      'paiement échoué', 'facture impayée', 'remboursement en attente', 'gagnant', 'félicitations', 'vous avez gagné',
+      'colis en attente', 'expédition retenue', 'virement entrant', 'coordonnées bancaires', 'carte de crédit',
+      // DE
+      'zahlung fehlgeschlagen', 'rechnung überfällig', 'rückerstattung ausstehend', 'gewinner', 'herzlichen glückwunsch', 'sie haben gewonnen',
+      'paket ausstehend', 'sendung zurückgehalten', 'überweisung eingehend', 'bankverbindung', 'kreditkarte',
+
+      // 4. AZIONI GENERICHE SOSPETTE
+      // IT
+      'clicca qui', 'scarica allegato', 'apri il file', 'compila il modulo', 'segui il link',
+      // EN
+      'click here', 'download attachment', 'open the file', 'fill out the form', 'follow the link', 'click below',
+      // ES
+      'haga clic aquí', 'descargar archivo adjunto', 'abrir el archivo', 'rellene el formulario', 'siga el enlace',
+      // FR
+      'cliquez ici', 'télécharger la pièce jointe', 'ouvrir le fichier', 'remplissez le formulaire', 'suivez le lien',
+      // DE
+      'hier klicken', 'anhang herunterladen', 'datei öffnen', 'formular ausfüllen', 'link folgen',
+      // 5. LOTTERIA / DONAZIONI / EREDITÀ
+      // IT
+      'donazione', 'filantropo', 'eredità', 'beneficiario', 'somma di denaro', 'selezionato casualmente', 
+      'vincita', 'lotteria', 'fortunato vincitore', 'i tuoi fondi', 'trasferimento bancario', 'milioni di dollari',
+      // EN
+      'donation', 'philanthropist', 'inheritance', 'beneficiary', 'sum of money', 'randomly selected', 
+      'winning', 'lottery', 'lucky winner', 'your funds', 'bank transfer', 'million dollars', 'giving while living',
+      'share my wealth', 'charity project',
+      // ES
+      'donación', 'filántropo', 'herencia', 'beneficiario', 'suma de dinero', 'seleccionado al azar',
+      'ganador', 'lotería', 'afortunado ganador', 'sus fondos', 'transferencia bancaria', 'millones de dólares',
+      // FR
+      'donation', 'philanthrope', 'héritage', 'bénéficiaire', 'somme d\'argent', 'sélectionné au hasard',
+      'gagnant', 'loterie', 'heureux gagnant', 'vos fonds', 'virement bancaire', 'millions de dollars',
+      // DE
+      'spende', 'philanthrop', 'erbe', 'begünstigter', 'geldbetrag', 'zufällig ausgewählt',
+      'gewinner', 'lotterie', 'glücklicher gewinner', 'ihre gelder', 'banküberweisung', 'millionen dollar',
     ];
-    const found = keywords.filter(kw => text.includes(kw));
+    
+    // Rimuovi duplicati e pulisci
+    const uniqueKeywords = [...new Set(keywords)];
+    
+    // Cerca corrispondenze
+    const found = uniqueKeywords.filter(kw => text.includes(kw));
+
+    // Rilevamento importi monetari elevati nel soggetto o corpo
+    // Pattern: Simboli valuta seguiti da numeri grandi, o "X million/billion"
+    const moneyRegex = /(?:\$|€|£|usd|eur|gbp)\s?[\d,.]+\s*(?:million|billion|m|b|milioni|miliardi)?/i;
+    const largeMoneyMatch = text.match(moneyRegex);
+    if (largeMoneyMatch) {
+        // Verifica se sembra un importo elevato (euristica base: contiene '000' o parole 'million'/'miliardi')
+        if (largeMoneyMatch[0].includes('000') || /million|billion|milion|miliard/i.test(largeMoneyMatch[0])) {
+            found.push('suspicious_amount_detected');
+        }
+    }
+
     return found;
+  }
+
+  // ===================================================================
+  // Rilevamento richieste dati sensibili
+  // ===================================================================
+
+  _detectSensitiveKeywords(body, subject) {
+    const text = (body + ' ' + subject).toLowerCase();
+    
+    const sensitiveKeywords = [
+        // DOCUMENTI / IDENTITÀ
+        'documento', 'passaporto', 'carta d\'identità', 'patente', 'codice fiscale', 'tessera sanitaria',
+        'document', 'passport', 'identity card', 'id card', 'driving license', 'ssn', 'social security',
+        
+        // CREDENZIALI / PASSWORD
+        'password', 'pin', 'credenziali', 'login', 'nome utente', 'username', 'codice di accesso',
+        'credentials', 'access code', 'security code',
+        
+        // DATI BANCARI / FINANZIARI
+        'iban', 'numero di conto', 'carta di credito', 'scadenza carta', 'cvv', 'cvc',
+        'account number', 'credit card', 'card expiration', 'routing number',
+        
+        // AZIONI SOSPETTE SPECIFICHE
+        'inviare a', 'inviare una copia', 'allegare documento', 'foto del documento',
+        'send to', 'send a copy', 'attach document', 'photo of id', 'reply to this email with'
+    ];
+
+    const found = sensitiveKeywords.filter(kw => text.includes(kw));
+    return found;
+  }
+
+  // ===================================================================
+  // Estrazione Email dal corpo del messaggio
+  // ===================================================================
+
+  _extractBodyEmails(body) {
+    if (!body) return [];
+    
+    // Regex semplice per email
+    const emailRegex = /[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+/gi;
+    const matches = body.match(emailRegex) || [];
+    
+    // Pulisci e normalizza
+    const unique = [...new Set(matches.map(e => e.toLowerCase()))];
+    return unique;
   }
 
   // ===================================================================

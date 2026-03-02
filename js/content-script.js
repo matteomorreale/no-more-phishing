@@ -406,6 +406,87 @@
     const totalLinks = safeUrlAnalysis.total !== undefined ? safeUrlAnalysis.total : (safeDetails.urls?.total || 0);
     const maliciousLinks = safeUrlAnalysis.malicious !== undefined ? safeUrlAnalysis.malicious : (safeDetails.urls?.malicious || 0);
 
+    // Determina se mostrare l'icona di warning
+    // Mostra warning se ci sono parole chiave sospette, link mismatch o reply-to mismatch, o fake re, o sensitive data
+    const hasWarning = safeDetails.urgency?.count > 0 || safeDetails.urls?.mismatch > 0 || !!safeDetails.replyToDomain || !!safeDetails.fakeRe || (safeDetails.sensitiveData && safeDetails.sensitiveData.length > 0);
+
+    // Costruzione lista penalità
+    const penalties = [];
+    
+    // Auth
+    if (safeDetails.spf?.score < 1 || safeDetails.dkim?.score < 1 || safeDetails.dmarc?.score < 1) {
+        penalties.push('Autenticazione mancante o debole (SPF/DKIM/DMARC)');
+    }
+    
+    // Sender Domain
+    if (safeDetails.senderDomainMatch?.match === false) {
+        penalties.push("Il dominio del mittente non corrisponde all'intestazione From");
+    }
+    
+    // Reply-To
+    if (safeDetails.replyToDomain || safeDetails.scoreCapReason === 'reply_to_mismatch') {
+        penalties.push("Indirizzo di risposta diverso dal mittente");
+    }
+    
+    // Fake RE
+    if (safeDetails.fakeRe || safeDetails.scoreCapReason === 'fake_re_subject') {
+        penalties.push('Finto "RE:" nell\'oggetto');
+    }
+    
+    // Scam Content
+    if (safeDetails.scoreCapReason === 'scam_content_high_risk') {
+        penalties.push('Contenuto tipico di truffa rilevato');
+    }
+    
+    // Sensitive Data
+    if (safeDetails.crossDomainEmails || safeDetails.scoreCapReason === 'sensitive_data_cross_domain') {
+        penalties.push('Richiesta invio dati a dominio esterno');
+    } else if (safeDetails.sensitiveData?.length > 0 || safeDetails.scoreCapReason === 'sensitive_data_request') {
+        penalties.push('Richiesta di dati sensibili nel testo');
+    }
+    
+    // Provider Risk
+    if (safeDetails.domain?.providerRisk === 'generic') {
+        penalties.push('Uso di provider email generico per comunicazioni business');
+    } else if (safeDetails.domain?.providerRisk === 'high_risk') {
+        penalties.push('Uso di provider email ad alto rischio/temporaneo');
+    }
+    
+    // Domain Reputation
+    if (safeDetails.domain?.reputation === 'suspicious' || safeDetails.domain?.isBlacklisted) {
+        penalties.push('Dominio con reputazione sospetta o in blacklist');
+    }
+    if (safeDetails.domainSuspiciousChars) {
+        penalties.push('Dominio mittente con caratteri sospetti');
+    }
+    
+    // URLs
+    if (safeDetails.urls?.mismatch > 0) {
+        penalties.push('Link che puntano a domini diversi dal mittente');
+    }
+    if (safeDetails.urls?.suspiciousChars > 0) {
+        penalties.push('Link con caratteri sospetti (omografi)');
+    }
+    
+    // Urgency
+    if (safeDetails.urgency?.count > 0) {
+        penalties.push('Uso di parole chiave di urgenza/pressione');
+    }
+    
+    // Attachments
+    if (safeEmailData.hasAttachments) {
+        penalties.push('Presenza di allegati potenzialmente rischiosi');
+    }
+
+    // Fallback
+    if (penalties.length === 0 && (safeDetails.warningCount > 0 || safeDetails.dangerCount > 0 || safeDetails.totalPenalty > 0)) {
+        if (safeDetails.totalPenalty > 0 && safeDetails.warningCount === 0 && safeDetails.dangerCount === 0) {
+             penalties.push('Accumulo di penalità minori (es. reputazione, link)');
+        } else {
+             penalties.push('Fattori di rischio multipli non specifici');
+        }
+    }
+
     overlay.innerHTML = `
       <div class="nmp-card nmp-result nmp-score-${score}">
         
@@ -415,11 +496,14 @@
             <span class="nmp-score-icon">${scoreIcon}</span>
             <span class="nmp-score-number">${score}</span>
             <span class="nmp-score-max">/5</span>
+            ${hasWarning ? `<div class="nmp-score-warning" title="${getI18n('warningHint')}">⚠️</div>` : ''}
           </div>
           <div class="nmp-score-info">
-            <div class="nmp-score-label">${scoreLabel}</div>
+            <div class="nmp-score-label-row">
+              <span class="nmp-score-label">${scoreLabel}</span>
+              <span class="nmp-sender-address-large">${escapeHtml(safeEmailData.fromEmail || safeEmailData.senderDomain || '').toUpperCase()}</span>
+            </div>
             <div class="nmp-sender-info">
-              <span class="nmp-sender-domain">${escapeHtml(safeEmailData.senderDomain || '')}</span>
               ${safeEmailData.isThread ? `<span class="nmp-thread-badge">${getI18n('thread')} (${safeEmailData.messageCount})</span>` : ''}
             </div>
           </div>
@@ -437,6 +521,16 @@
             ${[1,2,3,4,5].map(i => `<span class="${i <= score ? 'active' : ''}"></span>`).join('')}
           </div>
         </div>
+
+        <!-- Penalties Section (Mostra solo se ci sono penalità che riducono il punteggio) -->
+        ${penalties.length > 0 ? `
+        <div class="nmp-penalties-section" style="margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px;">
+            <div class="nmp-section-title" style="color: #d93025; font-weight: bold;">⚠️ Motivi della penalizzazione:</div>
+            <ul style="margin: 4px 0 0 16px; padding: 0; font-size: 11px; color: #444;">
+                ${penalties.map(p => `<li>${p}</li>`).join('')}
+            </ul>
+        </div>
+        ` : ''}
 
         <!-- Dettagli (collassabili) -->
         <div class="nmp-details" id="nmp-details-panel" style="display:none;">
@@ -470,6 +564,44 @@
                 ${getDomainReputationLabel(safeDomainAnalysis?.reputation)}
               </span>
             </div>
+            ${safeDetails.replyToDomain ? `
+            <div class="nmp-detail-row">
+              <span class="nmp-detail-label nmp-danger-text">${getI18n('replyToMismatch')}</span>
+              <span class="nmp-detail-value nmp-danger">${escapeHtml(safeDetails.replyToDomain)}</span>
+            </div>
+            ` : ''}
+            ${safeDetails.fakeRe ? `
+            <div class="nmp-detail-row">
+              <span class="nmp-detail-label nmp-danger-text">${getI18n('fakeReWarning')}</span>
+              <span class="nmp-detail-value nmp-danger">⚠️</span>
+            </div>
+            ` : ''}
+            ${safeDetails.sensitiveData && safeDetails.sensitiveData.length > 0 ? `
+            <div class="nmp-detail-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+              <span class="nmp-detail-label nmp-warning-text">${getI18n('sensitiveDataWarning')}</span>
+              <div class="nmp-keywords">
+                ${safeDetails.sensitiveData.map(kw => `<span class="nmp-keyword">${escapeHtml(kw)}</span>`).join('')}
+              </div>
+            </div>
+            ` : ''}
+            ${safeDetails.crossDomainEmails ? `
+            <div class="nmp-detail-row">
+              <span class="nmp-detail-label nmp-danger-text">${getI18n('crossDomainWarning')}</span>
+              <span class="nmp-detail-value nmp-danger">⚠️</span>
+            </div>
+            ` : ''}
+            ${safeDetails.domain?.providerRisk === 'generic' ? `
+            <div class="nmp-detail-row">
+              <span class="nmp-detail-label">${getI18n('provider')}</span>
+              <span class="nmp-detail-value nmp-warning">${getI18n('genericProvider')}</span>
+            </div>
+            ` : ''}
+            ${safeDetails.domain?.providerRisk === 'high_risk' ? `
+            <div class="nmp-detail-row">
+              <span class="nmp-detail-label">${getI18n('provider')}</span>
+              <span class="nmp-detail-value nmp-danger">${getI18n('highRiskProvider')}</span>
+            </div>
+            ` : ''}
           </div>
 
           <!-- Link analizzati -->
@@ -485,6 +617,14 @@
                 ${maliciousLinks}
               </span>
             </div>
+            ${safeDetails.urls?.mismatch > 0 ? `
+            <div class="nmp-detail-row">
+              <span class="nmp-detail-label">${getI18n('mismatchedLinks')}</span>
+              <span class="nmp-detail-value nmp-warning">
+                ${safeDetails.urls.mismatch}
+              </span>
+            </div>
+            ` : ''}
              ${maliciousLinks > 0 ? `
             <div class="nmp-malicious-list">
                 ${(safeUrlAnalysis.results || []).filter(u => u.isMalicious).map(u => `<div class="nmp-malicious-url">${escapeHtml(u.url)}</div>`).join('')}
@@ -497,7 +637,7 @@
           <div class="nmp-section">
             <div class="nmp-section-title">${getI18n('urgencyKeywords')}</div>
             <div class="nmp-keywords">
-              ${safeDetails.urgency.keywords.map(kw => `<span class="nmp-keyword">${escapeHtml(kw)}</span>`).join('')}
+              ${safeDetails.urgency.keywords.map(kw => `<span class="nmp-keyword">${formatKeyword(kw)}</span>`).join('')}
             </div>
           </div>
           ` : ''}
@@ -580,8 +720,20 @@
   function getScoreLabel(score) {
     const lang = navigator.language.startsWith('it') ? 'it' : 'en';
     const labels = {
-      it: { 5: 'Molto Affidabile', 4: 'Affidabile', 3: 'Incerto', 2: 'Sospetto', 1: 'Pericoloso' },
-      en: { 5: 'Very Trustworthy', 4: 'Trustworthy', 3: 'Uncertain', 2: 'Suspicious', 1: 'Dangerous' },
+      it: { 
+        5: 'Molto Affidabile', 
+        4: 'Discretamente Affidabile', 
+        3: 'Incerto', 
+        2: 'Sospetto', 
+        1: 'Pericoloso' 
+      },
+      en: { 
+        5: 'Very Trustworthy', 
+        4: 'Fairly Trustworthy', 
+        3: 'Uncertain', 
+        2: 'Suspicious', 
+        1: 'Dangerous' 
+      },
     };
     return labels[lang][score] || labels.en[score];
   }
@@ -621,14 +773,25 @@
         match: 'Corrispondente',
         mismatch: 'Non corrispondente',
         reputation: 'Reputazione',
+        provider: 'Provider Email',
+        genericProvider: 'Generico (Attenzione)',
+        highRiskProvider: 'Alto Rischio (Pericolo)',
         links: 'Link',
         totalLinks: 'Link totali',
         maliciousLinks: 'Link malevoli',
+        mismatchedLinks: 'Link esterni al dominio',
         urgencyKeywords: 'Parole chiave sospette',
         hasAttachments: 'Email con allegati — verificare con attenzione',
         thread: 'Thread',
         unknown: 'Sconosciuto',
         close: 'Chiudi',
+        warningHint: 'Elementi sospetti rilevati',
+        suspiciousAmount: 'Importo monetario sospetto',
+        replyToMismatch: 'Reply-To diverso dal mittente',
+        replyToLabel: 'Rispondi a',
+        fakeReWarning: 'Finto "RE:" rilevato (non è una risposta)',
+        sensitiveDataWarning: 'Richiesta dati sensibili rilevata',
+        crossDomainWarning: 'Richiesta invio dati a dominio esterno',
       },
       en: {
         analyzing: 'Analyzing...',
@@ -644,17 +807,35 @@
         match: 'Match',
         mismatch: 'Mismatch',
         reputation: 'Reputation',
+        provider: 'Email Provider',
+        genericProvider: 'Generic (Warning)',
+        highRiskProvider: 'High Risk (Danger)',
         links: 'Links',
         totalLinks: 'Total links',
         maliciousLinks: 'Malicious links',
+        mismatchedLinks: 'External domain links',
         urgencyKeywords: 'Suspicious keywords',
-        hasAttachments: 'Email has attachments — verify carefully',
+        hasAttachments: 'Attachments detected — verify carefully',
         thread: 'Thread',
         unknown: 'Unknown',
         close: 'Close',
+        warningHint: 'Suspicious elements detected',
+        suspiciousAmount: 'Suspicious monetary amount',
+        replyToMismatch: 'Reply-To different from sender',
+        fakeReWarning: 'Fake "RE:" detected (not a reply)',
+        sensitiveDataWarning: 'Sensitive data request detected',
+        crossDomainWarning: 'Request to send data to external domain',
+        replyToLabel: 'Reply-To',
       },
     };
     return strings[lang][key] || strings.en[key] || key;
+  }
+
+  function formatKeyword(kw) {
+    if (kw === 'suspicious_amount_detected') {
+      return getI18n('suspiciousAmount');
+    }
+    return escapeHtml(kw);
   }
 
   function escapeHtml(str) {

@@ -274,6 +274,13 @@ async function handleAnalyzeEmail({ messageId, threadId }) {
       urgencyKeywords: emailData.urgencyKeywords,
       hasAttachments: emailData.hasAttachments,
       isReply: emailData.isReply,
+      senderDomain: emailData.senderDomain,
+      replyTo: emailData.replyTo,
+      urls: emailData.urls,
+      subject: emailData.subject,
+      messageCount: emailData.messageCount || 1,
+      sensitiveData: emailData.sensitiveData,
+      bodyEmails: emailData.bodyEmails,
     });
 
     // DEBUG: Log score result details
@@ -288,15 +295,25 @@ async function handleAnalyzeEmail({ messageId, threadId }) {
     // Assicuriamoci che 'details' contenga i dati corretti sugli URL
     // ScoreCalculator potrebbe non passare tutto l'oggetto urlAnalysis dentro details.urls
     
+    // Merge dei dettagli URL calcolati e quelli dell'analisi proxy
+    const calculatedUrls = scoreResult.details.urls || {};
+    const proxyUrls = {
+        total: urlAnalysis.total || (emailData.urls ? emailData.urls.length : 0),
+        malicious: urlAnalysis.malicious || 0,
+        hasThreats: urlAnalysis.hasThreats || false
+    };
+
     return {
       score: scoreResult.score,
       details: {
         ...scoreResult.details,
-        // Forziamo i dati corretti degli URL dentro details per coerenza con il content script
         urls: {
-            total: urlAnalysis.total || (emailData.urls ? emailData.urls.length : 0),
-            malicious: urlAnalysis.malicious || 0,
-            hasThreats: urlAnalysis.hasThreats || false
+            ...calculatedUrls,
+            ...proxyUrls,
+            // Preserviamo i campi calcolati che proxyUrls non ha
+            mismatch: calculatedUrls.mismatch || 0,
+            suspiciousChars: calculatedUrls.suspiciousChars || 0,
+            penalty: calculatedUrls.penalty || 0
         }
       },
       emailData: {
