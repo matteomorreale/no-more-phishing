@@ -151,6 +151,10 @@
         btn.style.opacity = '1';
         if (response?.success) {
           showAuthenticatedUI();
+        } else {
+          // Mostra errore se l'autenticazione fallisce
+          console.error('[NMP] Sign in error:', response?.error);
+          alert('Errore di autenticazione: ' + (response?.error || 'Sconosciuto'));
         }
       });
     });

@@ -75,21 +75,145 @@
   // ===================================================================
 
   function checkCurrentEmail() {
-    // Cerca l'ID del thread dall'URL
-    const threadMatch = window.location.hash.match(/#(?:inbox|sent|all|label\/[^/]+)\/([a-f0-9]+)/i)
-      || window.location.search.match(/[?&]th=([a-f0-9]+)/i);
+    // 1. Validazione URL: Assicurati di essere in una vista di dettaglio email
+    // Pattern tipici: #inbox/ID, #sent/ID, #label/nome/ID, #all/ID
+    // Se siamo solo su #inbox, #sent, ecc., non fare nulla.
+    const hash = window.location.hash;
+    const isListView = /^#(inbox|sent|starred|drafts|imp|trash|all|spam|label\/[^/]+)$/.test(hash);
+    
+    if (isListView || !hash) {
+      console.log('[NMP] List view detected, hiding overlay');
+      hideOverlay();
+      return;
+    }
 
-    // Cerca l'ID del messaggio nel DOM
+    // 2. Cerca l'ID del thread dall'URL (Fonte più affidabile)
+    // Aggiornato regex per supportare ID alfanumerici (come FMfcgz...) e non solo esadecimali
+    const threadMatch = hash.match(/#(?:inbox|sent|starred|drafts|imp|trash|all|spam|label\/[^/]+)\/([a-zA-Z0-9_-]+)/i)
+      || window.location.search.match(/[?&]th=([a-zA-Z0-9_-]+)/i);
+
+    // 3. Cerca l'ID del messaggio nel DOM (solo se siamo in vista dettaglio)
+    // Verifica presenza di elementi tipici della vista dettaglio (es. oggetto email .hP)
+    const isDetailView = document.querySelector('.hP') !== null || document.querySelector('.ha') !== null;
+    
+    if (!isDetailView && !threadMatch) {
+        hideOverlay();
+        return;
+    }
+
     const messageEl = document.querySelector('[data-message-id]');
     const messageId = messageEl ? messageEl.getAttribute('data-message-id') : null;
-    const threadId = threadMatch ? threadMatch[1] : null;
+    
+    // IMPORTANTE: L'ID nell'URL (es. FMfcgz...) è spesso un "internal ID" che non funziona con le API pubbliche.
+    // Dobbiamo cercare il "data-legacy-thread-id" nel DOM, che è l'ID esadecimale corretto.
+    let threadId = null;
 
-    // Cerca il thread ID anche nel DOM (Gmail lo espone in vari modi)
-    const threadEl = document.querySelector('[data-thread-id]');
-    const domThreadId = threadEl ? threadEl.getAttribute('data-thread-id') : null;
+    // Cerca ID legacy (hex)
+    // Cerchiamo in più punti perché Gmail cambia spesso struttura
+    // PRIORITY: H2 with class hP (Subject line) is the most reliable source
+    const legacyThreadEl = document.querySelector('h2.hP[data-legacy-thread-id]') 
+      || document.querySelector('h2[data-legacy-thread-id]')
+      || document.querySelector('[data-legacy-thread-id]');
+    
+    if (legacyThreadEl) {
+        threadId = legacyThreadEl.getAttribute('data-legacy-thread-id');
+        console.log('[NMP] Found legacy thread ID from DOM:', threadId, 'Element:', legacyThreadEl.tagName, legacyThreadEl.className);
+    } else {
+        // TENTATIVO EXTRA: Cerca data-thread-perm-id (es. thread-f:1857010380590427128)
+        const permThreadEl = document.querySelector('[data-thread-perm-id]');
+        if (permThreadEl) {
+             const permId = permThreadEl.getAttribute('data-thread-perm-id');
+             console.log('[NMP] Found perm thread ID:', permId);
+             if (permId && permId.startsWith('thread-f:')) {
+                 // Convertiamo il decimale in hex
+                 const decimalId = permId.replace('thread-f:', '');
+                 try {
+                     threadId = BigInt(decimalId).toString(16);
+                     console.log('[NMP] Converted perm ID to hex:', threadId);
+                 } catch (e) {
+                     console.error('[NMP] Error converting perm ID:', e);
+                 }
+             }
+        }
 
-    const effectiveThreadId = domThreadId || threadId;
+        if (!threadId) {
+             // TENTATIVO ESTREMO: Cerca l'ID nel testo HTML o attributi span nascosti
+             // Spesso Gmail mette l'ID in attributi come 'data-item-id' dentro le liste
+             const itemEl = document.querySelector('div[role="main"] table tr[class*="zA"]');
+             // Ma questo è per la lista... noi siamo nel dettaglio.
+             
+             // Nel dettaglio, a volte è in span.afn
+             const spanId = document.querySelector('span[data-legacy-thread-id]');
+             if (spanId) {
+                  threadId = spanId.getAttribute('data-legacy-thread-id');
+                  console.log('[NMP] Found legacy thread ID from span:', threadId);
+             }
+        }
+    }
+
+    // Se non troviamo il legacy ID, usiamo quello dell'URL come fallback (ma potrebbe fallire)
+    if (!threadId && threadMatch) {
+        // Se siamo in detail view ma non abbiamo trovato l'ID nel DOM, è probabile che il DOM non sia ancora pronto.
+        // Invece di usare l'ID dell'URL che potrebbe essere sbagliato (es. 404), aspettiamo e riproviamo.
+        if (isDetailView) {
+             console.log('[NMP] In detail view but legacy ID missing. Retrying in 500ms...');
+             setTimeout(checkCurrentEmail, 500);
+             return;
+        }
+
+        threadId = threadMatch[1];
+        console.warn('[NMP] Legacy ID not found in DOM. Using URL ID (unreliable):', threadId);
+
+        // Se l'ID inizia con FM, è sicuramente un ID interno non valido per le API.
+        // In questo caso, proviamo a ritardare l'analisi sperando che il DOM si carichi meglio.
+        if (threadId.startsWith('FM')) {
+             console.log('[NMP] Detected internal ID (FM...), waiting for DOM...');
+             setTimeout(checkCurrentEmail, 1000); // Riprova tra 1 secondo
+             return;
+        }
+    }
+
+    // Fallback DOM standard
+    if (!threadId && isDetailView) {
+        const threadEl = document.querySelector('[data-thread-id]');
+        const domThreadId = threadEl ? threadEl.getAttribute('data-thread-id') : null;
+        if (domThreadId && domThreadId.length > 5) {
+            threadId = domThreadId;
+        }
+    }
+
+    // FIX: Se il threadId non è esadecimale (o contiene 'thread-f:'), significa che abbiamo fallito l'estrazione pulita
+    // L'API di Gmail vuole solo esadecimale puro. Se abbiamo ancora 'thread-f:...' o simile, puliamo.
+    if (threadId && threadId.toString().startsWith('thread-f:')) {
+         const decimalId = threadId.replace('thread-f:', '');
+         try {
+             threadId = BigInt(decimalId).toString(16);
+             console.log('[NMP] Late conversion of thread-f ID to hex:', threadId);
+         } catch(e) {
+             console.error('[NMP] Failed late conversion:', e);
+         }
+    }
+    
+    // Se l'ID è puramente numerico (decimale), convertiamolo in hex (es. ID vecchi)
+    if (threadId && /^\d+$/.test(threadId)) {
+        try {
+             threadId = BigInt(threadId).toString(16);
+             console.log('[NMP] Converted pure decimal ID to hex:', threadId);
+        } catch(e) {
+             console.error('[NMP] Failed decimal conversion:', e);
+        }
+    }
+
+    const effectiveThreadId = threadId;
     const effectiveMessageId = messageId;
+    
+    console.log('[NMP] Detected view:', { 
+        hash, 
+        isListView, 
+        isDetailView, 
+        threadId: effectiveThreadId, 
+        messageId: effectiveMessageId 
+    });
 
     // Evita di ri-analizzare la stessa email
     if (
@@ -253,14 +377,35 @@
   }
 
   function showOverlayResult(data) {
+    console.log('[NMP] showOverlayResult called with:', data);
     const overlay = getOrCreateOverlay();
     const { score, details, emailData, urlAnalysis, domainAnalysis } = data;
+
+    // A volte details è undefined o incompleto se c'è stato un errore parziale
+    const safeDetails = details || {};
+    const safeEmailData = emailData || {};
+    const safeUrlAnalysis = urlAnalysis || { total: 0, malicious: 0, results: [] };
+    const safeDomainAnalysis = domainAnalysis || { reputation: 'unknown' };
 
     const scoreClass = getScoreClass(score);
     const scoreLabel = getScoreLabel(score);
     const scoreIcon = getScoreIcon(score);
 
     overlay.style.display = 'flex';
+    
+    // Debug: log what we are about to render
+    console.log('[NMP] Rendering details:', {
+        spf: safeDetails.spf,
+        urls: safeDetails.urls || safeUrlAnalysis, // Use correct source
+        maliciousCount: safeUrlAnalysis.malicious || (safeDetails.urls ? safeDetails.urls.malicious : 0)
+    });
+
+    // FIX: Usa i dati corretti per i link. 
+    // service-worker restituisce { urlAnalysis: { total, malicious, ... } }
+    // ma qui a volte si usava details.urls
+    const totalLinks = safeUrlAnalysis.total !== undefined ? safeUrlAnalysis.total : (safeDetails.urls?.total || 0);
+    const maliciousLinks = safeUrlAnalysis.malicious !== undefined ? safeUrlAnalysis.malicious : (safeDetails.urls?.malicious || 0);
+
     overlay.innerHTML = `
       <div class="nmp-card nmp-result nmp-score-${score}">
         
@@ -274,8 +419,8 @@
           <div class="nmp-score-info">
             <div class="nmp-score-label">${scoreLabel}</div>
             <div class="nmp-sender-info">
-              <span class="nmp-sender-domain">${escapeHtml(emailData.senderDomain || '')}</span>
-              ${emailData.isThread ? `<span class="nmp-thread-badge">${getI18n('thread')} (${emailData.messageCount})</span>` : ''}
+              <span class="nmp-sender-domain">${escapeHtml(safeEmailData.senderDomain || '')}</span>
+              ${safeEmailData.isThread ? `<span class="nmp-thread-badge">${getI18n('thread')} (${safeEmailData.messageCount})</span>` : ''}
             </div>
           </div>
           <button class="nmp-toggle-btn" id="nmp-toggle-details" title="${getI18n('showDetails')}">
@@ -300,9 +445,9 @@
           <div class="nmp-section">
             <div class="nmp-section-title">${getI18n('emailAuthentication')}</div>
             <div class="nmp-auth-grid">
-              ${renderAuthBadge('SPF', details.spf?.label)}
-              ${renderAuthBadge('DKIM', details.dkim?.label)}
-              ${renderAuthBadge('DMARC', details.dmarc?.label)}
+              ${renderAuthBadge('SPF', safeDetails.spf?.label || safeDetails.spf?.status)}
+              ${renderAuthBadge('DKIM', safeDetails.dkim?.label || safeDetails.dkim?.status)}
+              ${renderAuthBadge('DMARC', safeDetails.dmarc?.label || safeDetails.dmarc?.status)}
             </div>
           </div>
 
@@ -311,18 +456,18 @@
             <div class="nmp-section-title">${getI18n('sender')}</div>
             <div class="nmp-detail-row">
               <span class="nmp-detail-label">${getI18n('domain')}</span>
-              <span class="nmp-detail-value">${escapeHtml(emailData.senderDomain || 'N/A')}</span>
+              <span class="nmp-detail-value">${escapeHtml(safeEmailData.senderDomain || 'N/A')}</span>
             </div>
             <div class="nmp-detail-row">
               <span class="nmp-detail-label">${getI18n('domainMatch')}</span>
-              <span class="nmp-detail-value ${details.senderDomainMatch?.match === false ? 'nmp-danger' : 'nmp-ok'}">
-                ${details.senderDomainMatch?.match === false ? '✗ ' + getI18n('mismatch') : details.senderDomainMatch?.match === true ? '✓ ' + getI18n('match') : getI18n('unknown')}
+              <span class="nmp-detail-value ${safeDetails.senderDomainMatch?.match === false ? 'nmp-danger' : 'nmp-ok'}">
+                ${safeDetails.senderDomainMatch?.match === false ? '✗ ' + getI18n('mismatch') : safeDetails.senderDomainMatch?.match === true ? '✓ ' + getI18n('match') : getI18n('unknown')}
               </span>
             </div>
             <div class="nmp-detail-row">
               <span class="nmp-detail-label">${getI18n('reputation')}</span>
-              <span class="nmp-detail-value ${getDomainReputationClass(domainAnalysis?.reputation)}">
-                ${getDomainReputationLabel(domainAnalysis?.reputation)}
+              <span class="nmp-detail-value ${getDomainReputationClass(safeDomainAnalysis?.reputation)}">
+                ${getDomainReputationLabel(safeDomainAnalysis?.reputation)}
               </span>
             </div>
           </div>
@@ -332,28 +477,33 @@
             <div class="nmp-section-title">${getI18n('links')}</div>
             <div class="nmp-detail-row">
               <span class="nmp-detail-label">${getI18n('totalLinks')}</span>
-              <span class="nmp-detail-value">${details.urls?.total || 0}</span>
+              <span class="nmp-detail-value">${totalLinks}</span>
             </div>
             <div class="nmp-detail-row">
               <span class="nmp-detail-label">${getI18n('maliciousLinks')}</span>
-              <span class="nmp-detail-value ${details.urls?.malicious > 0 ? 'nmp-danger' : 'nmp-ok'}">
-                ${details.urls?.malicious || 0}
+              <span class="nmp-detail-value ${maliciousLinks > 0 ? 'nmp-danger' : 'nmp-ok'}">
+                ${maliciousLinks}
               </span>
             </div>
+             ${maliciousLinks > 0 ? `
+            <div class="nmp-malicious-list">
+                ${(safeUrlAnalysis.results || []).filter(u => u.isMalicious).map(u => `<div class="nmp-malicious-url">${escapeHtml(u.url)}</div>`).join('')}
+            </div>
+            ` : ''}
           </div>
 
           <!-- Parole chiave sospette -->
-          ${details.urgency?.count > 0 ? `
+          ${safeDetails.urgency?.count > 0 ? `
           <div class="nmp-section">
             <div class="nmp-section-title">${getI18n('urgencyKeywords')}</div>
             <div class="nmp-keywords">
-              ${details.urgency.keywords.map(kw => `<span class="nmp-keyword">${escapeHtml(kw)}</span>`).join('')}
+              ${safeDetails.urgency.keywords.map(kw => `<span class="nmp-keyword">${escapeHtml(kw)}</span>`).join('')}
             </div>
           </div>
           ` : ''}
 
           <!-- Allegati -->
-          ${emailData.hasAttachments ? `
+          ${safeEmailData.hasAttachments ? `
           <div class="nmp-section nmp-warning-section">
             <span class="nmp-warning-icon">📎</span>
             <span>${getI18n('hasAttachments')}</span>

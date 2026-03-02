@@ -64,10 +64,29 @@ export class GmailAnalyzer {
     const urgencyKeywords = this._detectUrgencyKeywords(body, headers['subject'] || '');
     const sender = headers['from'] || '';
     const senderDomain = this._extractDomain(sender);
-    const envelopeDomain = this._extractEnvelopeDomain(headers['received'] || '');
-    const senderDomainMatch = envelopeDomain
-      ? senderDomain.toLowerCase() === envelopeDomain.toLowerCase()
-      : null;
+    
+    // Domain Match Logic Migliorata
+    let senderDomainMatch = false;
+    
+    // 1. Controlla Received headers (potrebbero essere multipli)
+    const receivedHeaders = Array.isArray(headers['received']) 
+        ? headers['received'] 
+        : (headers['received'] ? [headers['received']] : []);
+
+    const matchFound = receivedHeaders.some(header => {
+        const envDomain = this._extractEnvelopeDomain(header);
+        // Controlla se il dominio envelope contiene il dominio sender (es. mail.qdopp.com contiene qdopp.com)
+        return envDomain && (
+            envDomain.toLowerCase() === senderDomain.toLowerCase() ||
+            envDomain.toLowerCase().endsWith('.' + senderDomain.toLowerCase()) ||
+            senderDomain.toLowerCase().endsWith('.' + envDomain.toLowerCase())
+        );
+    });
+
+    // 2. Se SPF è PASS, consideriamo il dominio verificato anche se Received è confuso
+    if (authResults.spf === 'pass' || matchFound) {
+        senderDomainMatch = true;
+    }
 
     return {
       messageId: message.id,
@@ -96,7 +115,17 @@ export class GmailAnalyzer {
   _extractHeaders(headersList) {
     const headers = {};
     for (const header of headersList) {
-      headers[header.name.toLowerCase()] = header.value;
+      const name = header.name.toLowerCase();
+      // Gestione header multipli (es. Received)
+      if (headers[name]) {
+          if (Array.isArray(headers[name])) {
+              headers[name].push(header.value);
+          } else {
+              headers[name] = [headers[name], header.value];
+          }
+      } else {
+          headers[name] = header.value;
+      }
     }
     return headers;
   }
@@ -140,8 +169,17 @@ export class GmailAnalyzer {
 
     const decodeBase64 = (data) => {
       try {
-        return atob(data.replace(/-/g, '+').replace(/_/g, '/'));
-      } catch {
+        // Base64Url decode
+        const decoded = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+        
+        // Decodifica UTF-8 corretta (evita problemi con caratteri speciali)
+        const bytes = new Uint8Array(decoded.length);
+        for (let i = 0; i < decoded.length; i++) {
+            bytes[i] = decoded.charCodeAt(i);
+        }
+        return new TextDecoder().decode(bytes);
+      } catch (e) {
+        console.warn('[NMP] Decode error:', e);
         return '';
       }
     };
@@ -172,15 +210,66 @@ export class GmailAnalyzer {
   // ===================================================================
 
   _extractUrls(body) {
-    const urlRegex = /https?:\/\/[^\s"'<>)\]]+/gi;
-    const matches = body.match(urlRegex) || [];
+    // 0. Pre-process: Decodifica caratteri di escape JSON/Unicode
+    // Il raw body a volte contiene escape come \u003c (per <) o \" (per ")
+    let cleanBody = body;
+    try {
+        // Log pre-clean
+        console.log('[NMP] Raw body length:', body.length);
+        console.log('[NMP] Raw body preview:', body.substring(0, 200));
+
+        // Rimuove backslash di escape
+        cleanBody = cleanBody.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\r/g, '');
+        // Decodifica unicode escape sequence (es. \u003c -> <)
+        cleanBody = cleanBody.replace(/\\u([\d\w]{4})/gi, (match, grp) => {
+            return String.fromCharCode(parseInt(grp, 16));
+        });
+
+        // Log post-clean
+        console.log('[NMP] Clean body length:', cleanBody.length);
+        console.log('[NMP] Clean body preview:', cleanBody.substring(0, 200));
+    } catch (e) {
+        console.warn('[NMP] Body unescape failed:', e);
+    }
+
+    // 1. Estrazione tramite DOMParser (per link reali <a href>)
+    let domUrls = [];
+    if (typeof DOMParser !== 'undefined') {
+        try {
+            const parser = new DOMParser();
+            // Wrap body in case it's just text
+            const doc = parser.parseFromString(cleanBody, 'text/html');
+            const anchors = doc.querySelectorAll('a[href]');
+            domUrls = Array.from(anchors).map(a => a.href);
+            console.log('[NMP] DOMParser found URLs:', domUrls.length, domUrls);
+        } catch (e) {
+            console.warn('[NMP] DOMParser extraction failed:', e);
+        }
+    }
+
+    // 2. Estrazione tramite Regex (fallback per plain text o link non cliccabili)
+    // Aggiornato per includere mailto: e gestire meglio i confini
+    // Regex più permissiva per catturare URL spezzati o formattati male
+    const urlRegex = /(?:https?|ftp|mailto):\/?[^\s"'<>)\]]+/gi;
+    const regexMatches = cleanBody.match(urlRegex) || [];
+    console.log('[NMP] Regex found URLs:', regexMatches.length, regexMatches);
+    
+    // Combina i risultati
+    const allMatches = [...domUrls, ...regexMatches];
+    
     // Rimuovi duplicati e URL di Google (tracking interno)
-    const unique = [...new Set(matches)];
+    const unique = [...new Set(allMatches)];
     return unique.filter(url => {
       try {
+        // Pulizia finale URL (rimuove eventuali backslash residui alla fine)
+        url = url.replace(/\\$/, '');
+
+        // Gestione speciale per mailto
+        if (url.startsWith('mailto:')) return true;
+        
         const parsed = new URL(url);
         // Esclude URL di Google stessi (tracking, immagini, ecc.)
-        const googleDomains = ['google.com', 'googleapis.com', 'gstatic.com', 'googleusercontent.com'];
+        const googleDomains = ['google.com', 'googleapis.com', 'gstatic.com', 'googleusercontent.com', 'ggpht.com'];
         return !googleDomains.some(d => parsed.hostname.endsWith(d));
       } catch {
         return false;
@@ -258,27 +347,57 @@ export class GmailAnalyzer {
   // ===================================================================
 
   async _fetchMessage(messageId) {
+    // Rimuove eventuali prefissi come '#msg-f:'
+    let cleanId = messageId.replace(/^#msg-f:/, '').replace(/^#thread-f:/, '');
+    
+    // Se è un numero decimale (solo cifre), convertilo in esadecimale
+    if (/^\d+$/.test(cleanId)) {
+       const original = cleanId;
+       cleanId = BigInt(cleanId).toString(16);
+       console.log('[NMP] Converted decimal ID:', original, 'to hex:', cleanId);
+    }
+    
+    const url = `${this.apiBase}messages/${cleanId}?format=full`;
+    console.log('[NMP] Fetching message from:', url);
+
     const response = await fetch(
-      `${this.apiBase}messages/${messageId}?format=full`,
+      url,
       {
         headers: { Authorization: `Bearer ${this.authToken}` }
       }
     );
     if (!response.ok) {
-      throw new Error(`Gmail API error: ${response.status}`);
+      const errorBody = await response.text();
+      console.error('[NMP] Gmail API error body:', errorBody);
+      throw new Error(`Gmail API error: ${response.status} - ${errorBody}`);
     }
     return response.json();
   }
 
   async _fetchThread(threadId) {
+    // Rimuove eventuali prefissi come '#thread-f:'
+    let cleanId = threadId.replace(/^#thread-f:/, '');
+
+    // Se è un numero decimale (solo cifre), convertilo in esadecimale
+    if (/^\d+$/.test(cleanId)) {
+       const original = cleanId;
+       cleanId = BigInt(cleanId).toString(16);
+       console.log('[NMP] Converted decimal ID:', original, 'to hex:', cleanId);
+    }
+
+    const url = `${this.apiBase}threads/${cleanId}?format=full`;
+    console.log('[NMP] Fetching thread from:', url);
+
     const response = await fetch(
-      `${this.apiBase}threads/${threadId}?format=full`,
+      url,
       {
         headers: { Authorization: `Bearer ${this.authToken}` }
       }
     );
     if (!response.ok) {
-      throw new Error(`Gmail API error: ${response.status}`);
+      const errorBody = await response.text();
+      console.error('[NMP] Gmail API error body:', errorBody);
+      throw new Error(`Gmail API error: ${response.status} - ${errorBody}`);
     }
     return response.json();
   }
