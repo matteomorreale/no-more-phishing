@@ -40,10 +40,7 @@
 
   "permissions": [
     "identity",
-    "notifications",
-    "storage",
-    "scripting",
-    "alarms"
+    "storage"
   ],
 
   "host_permissions": [
